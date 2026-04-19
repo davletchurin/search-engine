@@ -2,21 +2,18 @@ package org.example.searchengine.util;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.example.searchengine.config.RequestSettings;
 import org.example.searchengine.model.Status;
+import org.example.searchengine.services.impl.IndexingServiceImpl;
 import org.springframework.stereotype.Component;
-import org.example.searchengine.model.PageEntity;
 import org.example.searchengine.model.SiteEntity;
 import org.example.searchengine.repositories.IndexRepository;
 import org.example.searchengine.repositories.LemmaRepository;
 import org.example.searchengine.repositories.PageRepository;
 import org.example.searchengine.repositories.SiteRepository;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinTask;
 import java.util.regex.Matcher;
@@ -25,7 +22,9 @@ import java.util.regex.Pattern;
 @Getter
 @Setter
 @Component
+@Slf4j
 public class SiteIndexer {
+    private IndexingServiceImpl indexingService;
     private ForkJoinPool pool;
     private SiteEntity siteEntity;
     private SiteRepository siteRepository;
@@ -35,13 +34,8 @@ public class SiteIndexer {
     private RequestSettings jsoupRequestSettings;
     private List<ForkJoinTask<Boolean>> siteIndexerRecursiveTasks = new ArrayList<>();
     public void startIndexing() {
-        System.out.println(
-                "Старт индексации сайта: "
-                        + siteEntity.getName()
-                        + ". С адресом: "
-                        + siteEntity.getUrl()
-        );
-        deleteAllBySiteEntity();
+        log.info("Старт индексации сайта: {}. С адресом: {}", siteEntity.getName(), siteEntity.getUrl());
+        indexingService.deleteAllBySiteEntity(siteEntity);
         siteEntity.setStatus(Status.INDEXING);
         siteRepository.save(siteEntity);
         IndexerExecutor executor = createExecutor();
@@ -50,12 +44,7 @@ public class SiteIndexer {
     }
 
     public void stopIndexing() {
-        System.out.println(
-            "Начало остановки индексации сайта: "
-                    + siteEntity.getName()
-                    + ". С адресом: "
-                    + siteEntity.getUrl()
-        );
+        log.info("Начало остановки индексации сайта: {}. С адресом: {}", siteEntity.getName(), siteEntity.getUrl());
         if (siteEntity.getStatus() == Status.INDEXED) {
             return;
         }
@@ -78,7 +67,7 @@ public class SiteIndexer {
 
     public IndexerExecutor createExecutor() {
         IndexerExecutor executor = new IndexerExecutor();
-        Set<String> uniqueUrls = new HashSet<>();
+        Set<String> uniqueUrls = Collections.synchronizedSet(new HashSet<>());
         executor.setSiteRepository(siteRepository);
         executor.setPageRepository(pageRepository);
         executor.setJsoupRequestSettings(jsoupRequestSettings);
@@ -103,14 +92,5 @@ public class SiteIndexer {
             return path.isEmpty() ? "/" : path;
         }
         return "/";
-    }
-
-    private void deleteAllBySiteEntity() {
-        List<PageEntity> pageEntities = pageRepository.findAllBySiteId(siteEntity);
-        for (PageEntity pageEntity : pageEntities) {
-            indexRepository.deleteAllByPageId(pageEntity);
-        }
-        lemmaRepository.deleteAllBySiteId(siteEntity);
-        pageRepository.deleteAllBySiteId(siteEntity);
     }
 }

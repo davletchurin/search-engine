@@ -2,6 +2,7 @@ package org.example.searchengine.util;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.example.searchengine.config.RequestSettings;
 import org.example.searchengine.model.*;
 import org.jsoup.Connection;
@@ -24,6 +25,7 @@ import java.util.concurrent.RecursiveTask;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Slf4j
 @Getter
 @Setter
 @Component
@@ -52,13 +54,13 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
         }
         uniqueUrls.add(relUrl);
 
-        if (indexPath && pageRepository.existsBySiteIdAndPath(siteEntity, relUrl)) {
-            PageEntity pageEntity = pageRepository.findBySiteIdAndPath(siteEntity, relUrl).get();
-            List<IndexEntity> indexEntities = indexRepository.findAllByPageId(pageEntity);
+        if (indexPath && pageRepository.existsBySiteAndPath(siteEntity, relUrl)) {
+            PageEntity pageEntity = pageRepository.findBySiteAndPath(siteEntity, relUrl).get();
+            List<IndexEntity> indexEntities = indexRepository.findAllByPage(pageEntity);
 
             List<LemmaEntity> lemmaEntities = new ArrayList<>();
             for (IndexEntity indexEntity : indexEntities) {
-                LemmaEntity lemmaEntity = indexEntity.getLemmaId();
+                LemmaEntity lemmaEntity = indexEntity.getLemma();
                 indexRepository.delete(indexEntity);
                 lemmaEntities.add(lemmaEntity);
             }
@@ -114,13 +116,11 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
 
         List<IndexEntity> indexEntities = new ArrayList<>();
         for (String lemma : lemmas.keySet()) {
-            LemmaEntity lemmaEntity = lemmaRepository.findBySiteIdAndLemma(siteEntity, lemma).orElse(null);
-            if (lemmaEntity != null) {
-                lemmaEntity.setFrequency(lemmaEntity.getFrequency() + 1);
-            } else {
-                lemmaEntity = createLemma(lemma);
-            }
-            lemmaEntity = lemmaRepository.save(lemmaEntity);
+
+            lemmaRepository.upsertLemma(siteEntity.getId(), lemma);
+
+            LemmaEntity lemmaEntity = lemmaRepository.findBySiteAndLemma(siteEntity, lemma)
+                    .orElseThrow();
 
             float rank = lemmas.get(lemma);
             IndexEntity indexEntity = createIndex(pageEntity,lemmaEntity,rank);
@@ -132,18 +132,10 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
 
     private IndexEntity createIndex(PageEntity pageEntity, LemmaEntity lemmaEntity, Float rank) {
         IndexEntity indexEntity = new IndexEntity();
-        indexEntity.setPageId(pageEntity);
-        indexEntity.setLemmaId(lemmaEntity);
+        indexEntity.setPage(pageEntity);
+        indexEntity.setLemma(lemmaEntity);
         indexEntity.setRank(rank);
         return indexEntity;
-    }
-
-    private LemmaEntity createLemma(String lemma) {
-        LemmaEntity lemmaEntity = new LemmaEntity();
-        lemmaEntity.setLemma(lemma);
-        lemmaEntity.setSiteId(siteEntity);
-        lemmaEntity.setFrequency(1);
-        return lemmaEntity;
     }
 
     private Connection.Response getResponse() {
@@ -154,11 +146,10 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
                     .referrer(jsoupRequestSettings.getReferrer())
                     .execute();
         } catch (HttpStatusException e) {
-            System.out.println("Не удалость получить доступ к сайту: " + e.getUrl());
-            System.out.println("Статус код: " + e.getStatusCode());
+            log.error("Не удалось получить доступ к сайту: {} Статус код: {}", e.getUrl(), e.getStatusCode());
             return null;
-        } catch (Exception e) { // TODO: надо ловить 404?
-            e.printStackTrace();
+        } catch (Exception e) {
+            log.error(e.getMessage());
             return null;
         }
     }
@@ -167,7 +158,7 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
         try {
             return response.parse();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage());
             return null;
         }
     }
@@ -216,7 +207,7 @@ public class IndexerExecutor extends RecursiveTask<Boolean> {
 
     private PageEntity createPageEntity(Connection.Response response, Document document) {
         PageEntity entity = new PageEntity();
-        entity.setSiteId(siteEntity);
+        entity.setSite(siteEntity);
         entity.setPath(relUrl);
         entity.setCode(response.statusCode());
         entity.setContent(document.outerHtml());
