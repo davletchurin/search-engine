@@ -1,9 +1,8 @@
 package org.example.searchengine.model;
 
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
-import javax.persistence.*;
 
 @Entity
 @Table(name = "lemma", uniqueConstraints = {
@@ -12,6 +11,7 @@ import javax.persistence.*;
 @Getter
 @Setter
 public class LemmaEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -20,9 +20,9 @@ public class LemmaEntity {
     @JoinColumn(name = "site_id", nullable = false)
     private SiteEntity site;
 
-    @Column(columnDefinition = "VARCHAR(255)", nullable = false)
+    @Column(nullable = false)
     private String lemma;
 
-    @Column(columnDefinition = "INT", nullable = false)
+    @Column(nullable = false)
     private Integer frequency;
 }

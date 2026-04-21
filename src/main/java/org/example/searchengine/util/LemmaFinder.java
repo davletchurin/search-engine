@@ -73,7 +73,7 @@ public class LemmaFinder {
      * @param text текст из которого собираем все леммы
      * @return набор уникальных лемм найденных в тексте
      */
-    public Set<String> getLemmaSet(String text) { // TODO: оно зачем?
+    public Set<String> getLemmaSet(String text) {
         String[] textArray = arrayContainsRussianWords(text);
         Set<String> lemmaSet = new HashSet<>();
         for (String word : textArray) {

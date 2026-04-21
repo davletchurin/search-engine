@@ -3,18 +3,26 @@ server:
 
 spring:
   datasource:
-    username: root
-    password: testtest
-    url: jdbc:mysql://localhost:3306/search_engine
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://${DB_HOST:localhost}:5432/search_engine_db?currentSchema=search_engine_schema
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
     hikari:
-      connection-timeout: 10000
+      maximum-pool-size: 20
+      connection-init-sql: CREATE SCHEMA IF NOT EXISTS search_engine_schema
+      connection-timeout: ${HIKARI_TIMEOUT:20000}
   jpa:
-    database-platform: org.hibernate.dialect.MySQL8Dialect
     generate-ddl: true
-    show-sql: true
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${HIBERNATE_DDL_AUTO:update}
+    show-sql: ${SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: true
+        jdbc.batch_size: 50
+        order_inserts: true
+        order_updates: true
+        jdbc.batch_versioned_data: true
 
 indexing-settings:
   sites:
@@ -22,5 +30,5 @@ indexing-settings:
       name: Dimon Video
 
 jsoup-settings:
-  agent: Mozilla/5.0 (Windows; U; WindowsNT 5.1; en-US; rv1.8.1.6) Gecko/20070725 Firefox/2.0.0.6
-  referrer: CosmicSearchBot
+  agent: ${JSOUP_AGENT:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36}
+  referrer: http://www.google.com

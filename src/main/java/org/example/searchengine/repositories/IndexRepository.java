@@ -26,7 +26,7 @@ public interface IndexRepository extends JpaRepository<IndexEntity, Long> {
 
     @Modifying
     @Transactional
-    @Query(value = "DELETE i FROM `index` i JOIN page p ON i.page_id = p.id WHERE p.site_id = :siteId", nativeQuery = true)
+    @Query(value = "DELETE FROM \"index\" WHERE page_id IN (SELECT id FROM page WHERE site_id = :siteId)", nativeQuery = true)
     void deleteBySiteId(@Param("siteId") Long siteId);
 
     List<IndexEntity> findAllByPageInAndLemmaIn(Collection<PageEntity> pages, Collection<LemmaEntity> lemmas);
