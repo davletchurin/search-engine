@@ -21,11 +21,6 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Install local Lucene libs
-        run: |
-          mkdir -p ~/.m2/repository/org/apache/lucene
-          cp -r libs/lucene/* ~/.m2/repository/org/apache/lucene/
-
       - name: Build with Maven
         run: mvn clean verify
 
