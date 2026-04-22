@@ -1,0 +1,33 @@
+# Сборка и зависимости
+.gradle
+build/
+!build/libs/*.jar
+out/
+bin/
+
+# Специфичные настройки IDE
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+.vscode/
+
+# Логи и временные файлы
+*.log
+tmp/
+temp/
+
+# Система и контроль версий
+.git
+.gitignore
+.github/
+.dockerignore
+
+# Docker файлы
+Dockerfile
+docker-compose.yml
+
+# Прочее
+README.md
+.editorconfig
