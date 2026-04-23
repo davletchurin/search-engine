@@ -1,5 +1,7 @@
 indexing-settings:
   sites:
+    - url: https://studio-sozvezdie.ru/
+      name: Дизайн-студия «Созвездие»
     - url: https://vistastom.ru/
       name: Стоматологическая клиника "Виста"
     - url: https://artoftea.ru/
